@@ -39,7 +39,8 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	// & sSession.Put(r.Context(), "remote_ip", remoteIP) store it in the session with its session key being "remote_ip"
 	m.App.Session.Put(r.Context(), "remote_ip", remoteIP)
 
-	render.RenderTemplate(w, "home.page.tmpl", &models.TemplateData{})
+	/////render.RenderTemplate(w, "home.page.tmpl", &models.TemplateData{})
+	render.RenderTemplate(w, "index.page.tmpl", &models.TemplateData{})
 }
 
 // About is the handler for the about page
@@ -56,6 +57,58 @@ func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 
 	// send the data to the template
 	render.RenderTemplate(w, "about.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+	})
+}
+
+// the handler for the generals page
+func (m *Repository) Generals(w http.ResponseWriter, r *http.Request) {
+
+	// perform some logic
+	stringMap := make(map[string]string)
+	stringMap["title"] = "Generals page"
+
+	// send the data to the template
+	render.RenderTemplate(w, "generals.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+	})
+}
+
+// the handler for the majors page
+func (m *Repository) Majors(w http.ResponseWriter, r *http.Request) {
+
+	// perform some logic
+	stringMap := make(map[string]string)
+	stringMap["title"] = "Majors suit page"
+
+	// send the data to the template
+	render.RenderTemplate(w, "majors.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+	})
+}
+
+// the handler for the contact page
+func (m *Repository) Contact(w http.ResponseWriter, r *http.Request) {
+
+	// perform some logic
+	stringMap := make(map[string]string)
+	stringMap["title"] = "Contact page"
+
+	// send the data to the template
+	render.RenderTemplate(w, "contact.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+	})
+}
+
+// the handler for the reservation page page
+func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
+
+	// perform some logic
+	stringMap := make(map[string]string)
+	stringMap["title"] = "Reservation page"
+
+	// send the data to the template
+	render.RenderTemplate(w, "reservation.page.tmpl", &models.TemplateData{
 		StringMap: stringMap,
 	})
 }
