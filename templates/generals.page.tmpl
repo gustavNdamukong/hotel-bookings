@@ -1,132 +1,114 @@
-    <!doctype html>
-    <html lang="en">
+{{ template "base" . }}
 
-    <head>
-      <!-- Required meta tags -->
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+{{ define "content" }}
 
-      <title>My Nice Page</title>
-
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
-            integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
-      <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.1.2/dist/css/datepicker-bs4.min.css">
-      <link rel="stylesheet" type="text/css" href="https://unpkg.com/notie/dist/notie.min.css">
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10.15.5/dist/sweetalert2.min.css">
-
-      <link rel="stylesheet" type="text/css" href="static/css/styles.css">
-    </head>
-
-    <body>
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <a class="navbar-brand" href="#">Navbar</a>
-  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarNav">
-    <ul class="navbar-nav">
-      <li class="nav-item active">
-        <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/about">About</a>
-      </li>
-      <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Rooms
-        </a>
-        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-          <a class="dropdown-item" href="/generals">General's Quarters</a>
-          <a class="dropdown-item" href="/majors">Major's Suite</a>
+  <div class="container">
+    <div class="row">
+        <div class="col">
+            <img src="/static/images/generals-quarters.png"
+                  class="img-fluid img-thumbnail mx-auto d-block room-image" alt="room image">
         </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/reservation">Book Now</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/contact">Contact</a>
-      </li>
-      
-    </ul>
-  </div>
-</nav>
-
-
-    
-
-    <div class="container">
-
-
-        <div class="row">
-            <div class="col">
-                <img src="static/images/generals-quarters.png"
-                     class="img-fluid img-thumbnail mx-auto d-block room-image" alt="room image">
-            </div>
-        </div>
-
-
-        <div class="row">
-            <div class="col">
-                <h1 class="text-center mt-4">General's Quarters</h1>
-                <p>
-                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-                    to remember.
-                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-                    to remember.
-                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-                    to remember.
-                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-                    to remember.
-                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-                    to remember.
-                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-                    to remember.
-                </p>
-            </div>
-        </div>
-
-
-        <div class="row">
-
-            <div class="col text-center">
-
-                <a id="check-availability-button" href="/make-reservation-gq" class="btn btn-success">Check Availability</a>
-
-            </div>
-        </div>
-        
-
-
-
     </div>
 
 
-    <footer class="my-footer">
-        <div class="row">
-            <div class="col">
-                left
-            </div>
-
-            <div class="col">
-                center
-            </div>
-
-            <div class="col">
-                right
-            </div>
-        </div>
-    </footer>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" 
-        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" 
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" 
-        integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" 
-        crossorigin="anonymous"></script>
+    <div class="row">
+      <div class="col">
+          <h1 class="text-center mt-4">General's Quarters</h1>
+          <p>
+              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+              to remember.
+              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+              to remember.
+              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+              to remember.
+              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+              to remember.
+              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+              to remember.
+              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+              to remember.
+          </p>
+      </div>
+    </div>
 
 
-    </body>
+    <div class="row">
+      <div class="col text-center">
+        <a href="#!" id="check-availability-button" href="/make-reservation-gq" class="btn btn-success">Check Availability</a>
+      </div>
+    </div>
+  </div>
 
-    </html>
+{{ end }}
+
+{{ define "js" }}
+  <script>
+    document.getElementById("check-availability-button").addEventListener("click", function () {
+      //notify('This is my message', 'warning');
+      //notifyModal('Some title', '<em>Hello world</em>', 'success', 'my Text for the button');
+      //attention.toast({ msg: "Hello, world", icon: "error" });
+      //attention.success({ msg: "Hello, world", footer: "This is the footer"});
+      //attention.error({ msg: "Oops, something went wrong", footer: "This is the footer"});
+
+      let html = `
+      <form id="check-availability-form" action="" method="post" novalidate class="needs-validation">
+          <div class="form-row">
+              <div class="col">
+                  <div class="form-row" id="reservation-dates-modal">
+                      <div class="col">
+                          <input disabled required class="form-control" type="text" name="start" id="start" placeholder="Arrival">
+                      </div>
+                      <div class="col">
+                          <input disabled required class="form-control" type="text" name="end" id="end" placeholder="Departure">
+                      </div>
+
+                  </div>
+              </div>
+          </div>
+      </form>
+      `;
+      attention.custom({
+        msg: html,
+        title: 'Choose your dates',
+
+        willOpen: () => {
+            const elem = document.getElementById("reservation-dates-modal");
+            const rangePicker = new DateRangePicker(elem, {
+                format: 'yyyy-mm-dd',
+                showOnFocus: true, //means when you click on it, you should see it
+                autohide: true, //whether to hide date picker once a date is selected
+            })
+          },
+
+        //'didOpen' is another (life-cycle hook) that will run after the modal displays
+        didOpen: () => {
+            //remove the disabled class on input fields after alert popup opens 
+            //we added the disabled class coz we did not want the datepicker to 
+            //auto-open on the popup load, since sweet alert auto-sets the first 
+            //form field on focus, causing the datepicker to open unprompted
+            document.getElementById("start").removeAttribute("disabled");
+            document.getElementById("end").removeAttribute("disabled");
+          },
+
+        callback: function(result) {
+          console.log("called callback() on custom func");
+
+          let form = document.getElementById("check-availability-form");
+          let formData = new FormData(form);
+          formData.append("csrf_token", "{{.CSRFToken}}");
+
+          fetch("/search-availability-json", {
+            method: "post",
+            body: formData,
+          })
+            .then(response => response.json())
+            .then(data => {
+              console.log(data);
+              console.log(data.ok);
+              console.log(data.message);
+            })
+        }
+      });
+    });
+  </script>
+{{ end }}

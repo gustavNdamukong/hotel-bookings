@@ -9,18 +9,13 @@ import (
 
 	"html/template"
 
-	"github.com/gustavNdamukong/hotel-bookings/pkg/config"
-	"github.com/gustavNdamukong/hotel-bookings/pkg/models"
+	"github.com/gustavNdamukong/hotel-bookings/internal/config"
+	"github.com/gustavNdamukong/hotel-bookings/internal/models"
+	"github.com/justinas/nosurf"
 )
 
-// AddDefaultData will be used to pass to views data that should be sent to all views by default
-func AddDefaultData(tData *models.TemplateData) *models.TemplateData {
-	/////tData.StringMap["defaultAppTitle"] = app.DefaultAppTitle
-	return tData
-}
-
 // create template functions
-var funcMap = template.FuncMap{}
+var functions = template.FuncMap{}
 
 var app *config.AppConfig
 
@@ -29,8 +24,22 @@ func NewTemplates(a *config.AppConfig) {
 	app = a
 }
 
+// AddDefaultData will be used to pass to views data that should be sent to all views by default
+// PopString is a built-in method on the Session library which puts something in the session
+// which only lasts until the page is refreshed
+func AddDefaultData(tData *models.TemplateData, request *http.Request) *models.TemplateData {
+	tData.Flash = app.Session.PopString(request.Context(), "flash")
+	tData.Error = app.Session.PopString(request.Context(), "error")
+	tData.Warning = app.Session.PopString(request.Context(), "warning")
+
+	log.Println("View data error is: ", tData.Error) /////
+	/////tData.StringMap["defaultAppTitle"] = app.DefaultAppTitle
+	tData.CSRFToken = nosurf.Token(request) //this will be used by all views with forms
+	return tData
+}
+
 // RenderTemplate renders templates using html/template
-func RenderTemplate(w http.ResponseWriter, requestedTemplateName string, tData *models.TemplateData) {
+func RenderTemplate(w http.ResponseWriter, request *http.Request, requestedTemplateName string, tData *models.TemplateData) {
 
 	var templateCache map[string]*template.Template
 	//if in development env
@@ -52,7 +61,7 @@ func RenderTemplate(w http.ResponseWriter, requestedTemplateName string, tData *
 
 	// beside your custom data for views, allow any other default data that should
 	// be passed to the views to be added to the template data destined for the view
-	tData = AddDefaultData(tData)
+	tData = AddDefaultData(tData, request)
 
 	//we do not have do go via the buffer, but we do it for fine-grained
 	//control over being able to tell where a potential error may be coming from
@@ -60,6 +69,9 @@ func RenderTemplate(w http.ResponseWriter, requestedTemplateName string, tData *
 
 	//render the template
 	_, err := buffer.WriteTo(w)
+	//------------------------TESTING------------------------
+	/////err := parsedTemplate.Execute(w, tData)
+	//------------------------END TESTING--------------------
 	if err != nil {
 		fmt.Println("error writing template to browser", err)
 	}

@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/gustavNdamukong/hotel-bookings/pkg/config"
-	"github.com/gustavNdamukong/hotel-bookings/pkg/handlers"
+	"github.com/gustavNdamukong/hotel-bookings/internal/config"
+	"github.com/gustavNdamukong/hotel-bookings/internal/handlers"
 )
 
 func routes(app *config.AppConfig) http.Handler {
@@ -14,15 +14,20 @@ func routes(app *config.AppConfig) http.Handler {
 	mux := chi.NewRouter()
 
 	mux.Use(middleware.Recoverer)
-	mux.Use(NoSurf)
+	mux.Use(NoSurf) //ignore any post request that doesn't have a proper CSRF token
 	mux.Use(SessionLoad)
 
 	mux.Get("/", handlers.Repo.Home)
 	mux.Get("/about", handlers.Repo.About)
-	mux.Get("/generals", handlers.Repo.Generals)
-	mux.Get("/majors", handlers.Repo.Majors)
+	mux.Get("/generals-quarters", handlers.Repo.Generals)
+	mux.Get("/majors-suite", handlers.Repo.Majors)
+	mux.Get("/search-availability", handlers.Repo.Availability)
+	mux.Post("/search-availability", handlers.Repo.PostAvailability)
+	mux.Post("/search-availability-json", handlers.Repo.AvailabilityJSON)
 	mux.Get("/contact", handlers.Repo.Contact)
-	mux.Get("/reservation", handlers.Repo.Reservation)
+	mux.Get("/make-reservation", handlers.Repo.Reservation)
+	mux.Post("/make-reservation", handlers.Repo.PostReservation)
+	mux.Get("/reservation-summary", handlers.Repo.ReservationSummary)
 
 	//create a file server to serve any files or images etc
 	fileserver := http.FileServer(http.Dir("./static/"))
