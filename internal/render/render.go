@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,10 +15,16 @@ import (
 	"github.com/justinas/nosurf"
 )
 
-// create template functions
+// This will hold all custom functions that we would want to create and make
+// available to our golang templates
 var functions = template.FuncMap{}
 
 var app *config.AppConfig
+
+// When we run the app in the browser its fine, but when running eg tests, tests are run
+// from a different dir relatively, so we do this to ensure template files are always accessed
+// as an absolute path
+var pathToTemplates = "./templates"
 
 // NewTemplates sets the config for the template package
 func NewTemplates(a *config.AppConfig) {
@@ -32,21 +39,21 @@ func AddDefaultData(tData *models.TemplateData, request *http.Request) *models.T
 	tData.Error = app.Session.PopString(request.Context(), "error")
 	tData.Warning = app.Session.PopString(request.Context(), "warning")
 
-	log.Println("View data error is: ", tData.Error) /////
 	/////tData.StringMap["defaultAppTitle"] = app.DefaultAppTitle
 	tData.CSRFToken = nosurf.Token(request) //this will be used by all views with forms
 	return tData
 }
 
 // RenderTemplate renders templates using html/template
-func RenderTemplate(w http.ResponseWriter, request *http.Request, requestedTemplateName string, tData *models.TemplateData) {
+func RenderTemplate(w http.ResponseWriter, request *http.Request, requestedTemplateName string, tData *models.TemplateData) error {
 
 	var templateCache map[string]*template.Template
 	//if in development env
 	if app.UseCache {
-		// get the template cache from the app config instead of CreateTemplateCache()
+		// get the template cache from the app config instead of CreateTemplateCache() (which parses all templates anew)
 		templateCache = app.TemplateCache
 	} else {
+		// this is just used for testing, so that we rebuild the cache on every request
 		templateCache, _ = CreateTemplateCache()
 	}
 
@@ -54,7 +61,8 @@ func RenderTemplate(w http.ResponseWriter, request *http.Request, requestedTempl
 	parsedTemplate, ok := templateCache[requestedTemplateName]
 	if !ok {
 		//cannot get template from cache
-		log.Fatal("Could not get template from template cache")
+		//log.Fatal("Could not get template from template cache")
+		return errors.New("Cannot get template from template cache")
 	}
 
 	buffer := new(bytes.Buffer)
@@ -65,15 +73,17 @@ func RenderTemplate(w http.ResponseWriter, request *http.Request, requestedTempl
 
 	//we do not have do go via the buffer, but we do it for fine-grained
 	//control over being able to tell where a potential error may be coming from
-	_ = parsedTemplate.Execute(buffer, tData)
+	err := parsedTemplate.Execute(buffer, tData)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//render the template
-	_, err := buffer.WriteTo(w)
-	//------------------------TESTING------------------------
-	/////err := parsedTemplate.Execute(w, tData)
-	//------------------------END TESTING--------------------
+	_, err = buffer.WriteTo(w)
+
 	if err != nil {
 		fmt.Println("error writing template to browser", err)
+		return err
 	}
 
 	/*
@@ -81,6 +91,7 @@ func RenderTemplate(w http.ResponseWriter, request *http.Request, requestedTempl
 		your templates directory, or how many are using a particular extension like
 		a .page, .tmpl or .layout etc. All that will happen automatically
 	*/
+	return nil
 }
 
 func CreateTemplateCache() (map[string]*template.Template, error) {
@@ -90,7 +101,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 	//This function should cache all your chacheable assets in one place
 	//It's recommended to first parse template files before their associated layout files
 	//get all files named *.page.tmpl from the ./templates directory
-	pages, err := filepath.Glob("./templates/*page.tmpl")
+	pages, err := filepath.Glob(fmt.Sprintf("%s/*.page.tmpl", pathToTemplates))
 	if err != nil {
 		//return whatever the current value of myCache is
 		return myCache, err
@@ -108,14 +119,14 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 		}
 
 		//parse the layout files too
-		matches, err := filepath.Glob("./templates/*.layout.tmpl")
+		matches, err := filepath.Glob(fmt.Sprintf("%s/*.layout.tmpl", pathToTemplates))
 		if err != nil {
 			//return whatever the current value of myCache is
 			return myCache, err
 		}
 
 		if len(matches) > 0 {
-			templateSet, err = templateSet.ParseGlob("./templates/*.layout.tmpl")
+			templateSet, err = templateSet.ParseGlob(fmt.Sprintf("%s/*.layout.tmpl", pathToTemplates))
 			if err != nil {
 				//return whatever the current value of myCache is
 				return myCache, err

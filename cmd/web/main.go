@@ -21,6 +21,25 @@ var session *scs.SessionManager
 
 // main is the main function
 func main() {
+	// NOTES: add to debug notes that the equivalent of dump & die in go is
+	// log.Fatal(err) coz it will abort the app execution & log the error. Remember to import log above though
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf(fmt.Sprintf("Starting application on port %s", portNumber))
+
+	serve := &http.Server{
+		Addr:    portNumber,
+		Handler: routes(&app),
+	}
+
+	err = serve.ListenAndServe()
+	log.Fatal(err)
+}
+
+func run() error {
 	// Register the models.Reservation type with gob
 	// what am i going to put in the session
 	gob.Register(models.Reservation{})
@@ -50,6 +69,7 @@ func main() {
 	templateCache, err := render.CreateTemplateCache()
 	if err != nil {
 		log.Fatal("Cannot create template cache")
+		return err
 	}
 
 	app.DefaultAppTitle = "Hotel Reservation App"
@@ -64,17 +84,5 @@ func main() {
 
 	render.NewTemplates(&app)
 
-	// http.HandleFunc("/", handlers.Repo.Home)
-	// http.HandleFunc("/about", handlers.Repo.About)
-
-	fmt.Printf(fmt.Sprintf("Starting application on port %s", portNumber))
-	//_ = http.ListenAndServe(portNumber, nil)
-
-	serve := &http.Server{
-		Addr:    portNumber,
-		Handler: routes(&app),
-	}
-
-	err = serve.ListenAndServe()
-	log.Fatal(err)
+	return nil
 }

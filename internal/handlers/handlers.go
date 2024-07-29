@@ -42,12 +42,6 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	// & sSession.Put(r.Context(), "remote_ip", remoteIP) store it in the session with its session key being "remote_ip"
 	m.App.Session.Put(r.Context(), "remote_ip", remoteIP)
 
-	//----------------TESTING---------------------------
-	/*viewError := m.App.Session.GetString(r.Context(), "error")
-	stringMap := make(map[string]string)
-	stringMap["error"] = viewError*/
-	//----------------END TESTING-----------------------
-
 	/////render.RenderTemplate(w, "home.page.tmpl", &models.TemplateData{})
 	render.RenderTemplate(w, r, "index.page.tmpl", &models.TemplateData{})
 }
@@ -169,7 +163,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	form := forms.New(r.PostForm)
 
 	form.Required("first_name", "last_name", "email")
-	form.MinLength("first_name", 3, r)
+	form.MinLength("first_name", 3)
 	form.IsEmail("email")
 
 	if !form.Valid() {
@@ -195,7 +189,7 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 	//what is stored in the 'reservation' key in the session is indeed a Reservation model.
 	//Notice that this is as opposed to grabbing a string from the session-where you
 	//would use Session.GetString()
-	// TODO: document how you would store & retrieve a struct from the session
+	// NOTES: document how you would store & retrieve a struct from the session
 	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
 	/////remoteIP := m.App.Session.GetString(r.Context(), "remote_ip") /////
 	/////log.Println("View data error is: ", reservation) /////
@@ -207,10 +201,10 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: How to remove an item from the session
+	// NOTES: How to remove an item from the session
 	m.App.Session.Remove(r.Context(), "reservation")
 
-	// TODO: document in data types how when initialising a map, the interface{} type
+	// NOTES: document in data types how when initialising a map, the interface{} type
 	// declared for tits value indicates it will contain a struct. In the case below,
 	// reservation is a struct. Also reference notes on how structs can be interfaces.
 	data := make(map[string]interface{})
