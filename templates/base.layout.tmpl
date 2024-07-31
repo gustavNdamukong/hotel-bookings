@@ -138,6 +138,19 @@
         })();
 
 
+        //Skeleton of how to use the notie JS library for notifications
+        /*
+        function alertSuccess(msg) {
+        notie.alert({
+            type: success, // optional, default = 4, enum: [1, 2, 3, 4, 5, 'success', 'warning', 'error', 'info', 'neutral']
+            text: msg,
+            //stay: Boolean, // optional, default = false (should it stay on screen or not)
+            //time: Number, // optional, default = 3, minimum = 1 (these represent how long the popup will stay on screen for-in secs)
+            //position: String // optional, default = 'top', enum: ['top', 'bottom']
+        })
+        } */
+
+
         function notify(msg, msgType) {
             notie.alert({
                 type: msgType,
@@ -179,6 +192,7 @@
 
                 } = c;
 
+                // 'didOpen' is another (life-cycle hook) that will run after the modal displays
                 const Toast = Swal.mixin({
                     toast: true,
                     title: msg,

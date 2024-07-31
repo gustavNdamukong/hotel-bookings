@@ -3,11 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gustavNdamukong/hotel-bookings/internal/config"
 	"github.com/gustavNdamukong/hotel-bookings/internal/forms"
+	"github.com/gustavNdamukong/hotel-bookings/internal/helpers"
 	"github.com/gustavNdamukong/hotel-bookings/internal/models"
 	"github.com/gustavNdamukong/hotel-bookings/internal/render"
 )
@@ -34,15 +34,6 @@ func NewHandlers(r *Repository) {
 
 // Home is the handler for the home page
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
-	// get the remote IP of the visitor (get that from the request obj)
-	remoteIP := r.RemoteAddr
-	log.Println("Remote IP detected: ", remoteIP)
-
-	// every time someone hits that home page; get that user's IP addr as a string
-	// & sSession.Put(r.Context(), "remote_ip", remoteIP) store it in the session with its session key being "remote_ip"
-	m.App.Session.Put(r.Context(), "remote_ip", remoteIP)
-
-	/////render.RenderTemplate(w, "home.page.tmpl", &models.TemplateData{})
 	render.RenderTemplate(w, r, "index.page.tmpl", &models.TemplateData{})
 }
 
@@ -50,10 +41,6 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 	// perform some logic
 	stringMap := make(map[string]string)
-	stringMap["test"] = "Hello, again"
-
-	remoteIP := m.App.Session.GetString(r.Context(), "remote_ip")
-	stringMap["remote_ip"] = remoteIP
 
 	// send data to the template
 	render.RenderTemplate(w, r, "about.page.tmpl", &models.TemplateData{
@@ -114,11 +101,21 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 
 	out, err := json.MarshalIndent(resp, "", "     ")
 	if err != nil {
-		log.Println(err)
+		helpers.ServerError(w, err)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+
+	// NOTES: this is how you extract values posted via a form
+	// start := r.Form.Get("start")
+	// end := r.Form.Get("end")
+
+	// If you were to print that data directly to the browser, you would need to cast it
+	// to the required format as you write it to the browser like so:
+	// converting the given text to (byte()) a slice of bytes
+	// w.Write([]byte(fmt.Sprintf("Start date is %s and end date is %s", start, end)))
 }
 
 // Contact renders the contact page
@@ -149,10 +146,13 @@ func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
 func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		log.Println(err)
+		// NOTES: this is how we can make use of our error helper to throw errors
+		helpers.ServerError(w, err)
 		return
 	}
 
+	// TODO: use the form object & populate it with the submitted form data
+	// Notice how we get the form field data from the request using request.Form.Get(fieldName)
 	reservation := models.Reservation{
 		FirstName: r.Form.Get("first_name"),
 		LastName:  r.Form.Get("last_name"),
@@ -164,6 +164,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 
 	form.Required("first_name", "last_name", "email")
 	form.MinLength("first_name", 3)
+	// TODO: validate submitted email address using the installed Govalidator library
 	form.IsEmail("email")
 
 	if !form.Valid() {
@@ -191,10 +192,8 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 	//would use Session.GetString()
 	// NOTES: document how you would store & retrieve a struct from the session
 	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
-	/////remoteIP := m.App.Session.GetString(r.Context(), "remote_ip") /////
-	/////log.Println("View data error is: ", reservation) /////
 	if !ok {
-		log.Println("can't get item from session")
+		m.App.ErrorLog.Println("can't get item from session")
 		m.App.Session.Put(r.Context(), "error", "Can't get reservation from session")
 		//the http response code 'StatusTemporaryRedirect' is essentially a 301 code
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
