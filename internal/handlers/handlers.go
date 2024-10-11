@@ -416,6 +416,7 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// ChooseRoom displays list of available rooms
 func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
 	// NOTES: This is how to read URL params. A link from the view (choose-room.page.tmple)
 	// 	sends an id to the route 'mux.Get("/choose-room/{{id}}", handlers.Repo.ChooseRoom)'
@@ -450,5 +451,44 @@ func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
 	m.App.Session.Put(r.Context(), "reservation", res)
 
 	http.Redirect(w, r, "/make-reservation", http.StatusSeeOther)
+
+}
+
+// BookRoom takes URL params, builds a sessional variable, and takes user to make-reservation screen
+func (m *Repository) BookRoom(w http.ResponseWriter, r *http.Request) {
+	// NOTES: Here is how you retrieve data from URL parameters (GET values)
+	roomID, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	startD := r.URL.Query().Get("s")
+	endD := r.URL.Query().Get("e")
+	/////log.Println(ID, endDate, startDate)
+
+	layout := "2006-01-02"
+	startDate, err := time.Parse(layout, startD)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	endDate, err := time.Parse(layout, endD)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	room, err := m.DB.GetRoomById(roomID)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	var res models.Reservation
+	res.RoomId = roomID
+	res.Room.RoomName = room.RoomName
+	res.StartDate = startDate
+	res.EndDate = endDate
+
+	m.App.Session.Put(r.Context(), "reservation", res)
+
+	http.Redirect(w, r, "make-reservation", http.StatusSeeOther)
 
 }

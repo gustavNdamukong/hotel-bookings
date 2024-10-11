@@ -27,6 +27,7 @@ func routes(app *config.AppConfig) http.Handler {
 
 	// NOTES: How to parse a URL parameter sent from an HTML link
 	mux.Get("/choose-room/{id}", handlers.Repo.ChooseRoom)
+	mux.Get("/book-room", handlers.Repo.BookRoom)
 
 	mux.Get("/contact", handlers.Repo.Contact)
 

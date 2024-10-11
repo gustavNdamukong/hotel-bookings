@@ -41,39 +41,25 @@
           </div>
       </div>
   </div>
-
 {{ end }}
+
 
 {{ define "js" }}
   <script>
     document.getElementById("check-availability-button").addEventListener("click", function () {
-      //notify('This is my message', 'warning');
-      //notifyModal('Some title', '<em>Hello world</em>', 'success', 'my Text for the button');
-      //attention.toast({ msg: "Hello, world", icon: "error" });
-      //attention.success({ msg: "Hello, world", footer: "This is the footer"});
-      //attention.error({ msg: "Oops, something went wrong", footer: "This is the footer"});
+        //notify('This is my message', 'warning');
+        //notifyModal('Some title', '<em>Hello world</em>', 'success', 'my Text for the button');
+        //attention.toast({ msg: "Hello, world", icon: "error" });
+        //attention.success({ msg: "Hello, world", footer: "This is the footer"});
+        //attention.error({ msg: "Oops, something went wrong", footer: "This is the footer"});
+    
+        // we need to pas in the room ID as well (the general quarters room's id is 2)
+        // TODO: Shouldn't the room ID be dynamic?
+        let thisRoomId = 2;
+        let token = {{.CSRFToken}}
 
-      let html = `
-      <form id="check-availability-form" action="" method="post" novalidate class="needs-validation">
-          <div class="form-row">
-              <div class="col">
-                  <div class="form-row" id="reservation-dates-modal">
-                      <div class="col">
-                          <input disabled required class="form-control" type="text" name="start" id="start" placeholder="Arrival">
-                      </div>
-                      <div class="col">
-                          <input disabled required class="form-control" type="text" name="end" id="end" placeholder="Departure">
-                      </div>
-
-                  </div>
-              </div>
-          </div>
-      </form>
-      `;
-      attention.custom({
-          title: 'Choose your dates',
-          msg: html,
-      });
+        BookARoom(thisRoomId, token);
+      
     });
   </script>
 {{ end }}
