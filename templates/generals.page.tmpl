@@ -1,116 +1,131 @@
-{{ template "base" . }}
+{{template "base" .}}
 
-{{ define "content" }}
+{{define "content"}}
 
-  <div class="container">
-    <div class="row">
-        <div class="col">
-            <img src="/static/images/generals-quarters.png"
-                  class="img-fluid img-thumbnail mx-auto d-block room-image" alt="room image">
+    <div class="container">
+
+
+        <div class="row">
+            <div class="col">
+                <img src="/static/images/generals-quarters.png"
+                     class="img-fluid img-thumbnail mx-auto d-block room-image" alt="room image">
+            </div>
         </div>
+
+
+        <div class="row">
+            <div class="col">
+                <h1 class="text-center mt-4">General's Quarters</h1>
+                <p>
+                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+                    to remember.
+                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+                    to remember.
+                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+                    to remember.
+                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+                    to remember.
+                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+                    to remember.
+                    Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
+                    to remember.
+                </p>
+            </div>
+        </div>
+
+
+        <div class="row">
+
+            <div class="col text-center">
+
+                <a id="check-availability-button" href="#!" class="btn btn-success">Check Availability</a>
+
+            </div>
+        </div>
+
+
+
+
     </div>
 
-
-    <div class="row">
-      <div class="col">
-          <h1 class="text-center mt-4">General's Quarters</h1>
-          <p>
-              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-              to remember.
-              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-              to remember.
-              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-              to remember.
-              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-              to remember.
-              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-              to remember.
-              Your home away form home, set on the majestic waters of the Atlantic Ocean, this will be a vacation
-              to remember.
-          </p>
-      </div>
-    </div>
+{{end}}
 
 
-    <div class="row">
-      <div class="col text-center">
-        <a href="#!" id="check-availability-button" href="/make-reservation-gq" class="btn btn-success">Check Availability</a>
-      </div>
-    </div>
-  </div>
-
-{{ end }}
-
-{{ define "js" }}
-  <script>
+{{define "js"}}
+<script>
     document.getElementById("check-availability-button").addEventListener("click", function () {
-      //notify('This is my message', 'warning');
-      //notifyModal('Some title', '<em>Hello world</em>', 'success', 'my Text for the button');
-      //attention.toast({ msg: "Hello, world", icon: "error" });
-      //attention.success({ msg: "Hello, world", footer: "This is the footer"});
-      //attention.error({ msg: "Oops, something went wrong", footer: "This is the footer"});
+        let html = `
+        <form id="check-availability-form" action="" method="post" novalidate class="needs-validation">
+            <div class="form-row">
+                <div class="col">
+                    <div class="form-row" id="reservation-dates-modal">
+                        <div class="col">
+                            <input disabled required class="form-control" type="text" name="start" id="start" placeholder="Arrival">
+                        </div>
+                        <div class="col">
+                            <input disabled required class="form-control" type="text" name="end" id="end" placeholder="Departure">
+                        </div>
 
-      let html = `
-      <form id="check-availability-form" action="" method="post" novalidate class="needs-validation">
-          <div class="form-row">
-              <div class="col">
-                  <div class="form-row" id="reservation-dates-modal">
-                      <div class="col">
-                          <input disabled required class="form-control" type="text" name="start" id="start" placeholder="Arrival">
-                      </div>
-                      <div class="col">
-                          <input disabled required class="form-control" type="text" name="end" id="end" placeholder="Departure">
-                      </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        `;
+        attention.custom({
+            title: 'Choose your dates',
+            msg: html,
+            willOpen: () => {
+                const elem = document.getElementById("reservation-dates-modal");
+                const rp = new DateRangePicker(elem, {
+                    format: 'yyyy-mm-dd',
+                    showOnFocus: true,
+                    minDate: new Date(),
+                })
+            },
+            didOpen: () => {
+                document.getElementById("start").removeAttribute("disabled");
+                document.getElementById("end").removeAttribute("disabled");
+            },
+            callback: function(result) {
+                console.log("called callback() on custom func");
 
-                  </div>
-              </div>
-          </div>
-      </form>
-      `;
+                let form = document.getElementById("check-availability-form");
+                let formData = new FormData(form);
+                formData.append("csrf_token", "{{.CSRFToken}}");
+                // we need to pas in the room ID as well (the general quarters room's id is 1)
+                //TODO: Shouldn't the room ID be dynamic?
+                formData.append("room_id", "1");
 
-      //'willOpen' is a function that will run before the alert modal opens
-      attention.custom({
-        msg: html,
-        title: 'Choose your dates',
-
-        willOpen: () => {
-            const elem = document.getElementById("reservation-dates-modal");
-            const rangePicker = new DateRangePicker(elem, {
-                format: 'yyyy-mm-dd',
-                showOnFocus: true, //means when you click on it, you should see it
-                autohide: true, //whether to hide date picker once a date is selected
-            })
-          },
-
-        //'didOpen' is another (life-cycle hook) that will run after the modal displays
-        didOpen: () => {
-            //remove the disabled class on input fields after alert popup opens 
-            //we added the disabled class coz we did not want the datepicker to 
-            //auto-open on the popup load, since sweet alert auto-sets the first 
-            //form field on focus, causing the datepicker to open unprompted
-            document.getElementById("start").removeAttribute("disabled");
-            document.getElementById("end").removeAttribute("disabled");
-          },
-
-        callback: function(result) {
-          console.log("called callback() on custom func");
-
-          let form = document.getElementById("check-availability-form");
-          let formData = new FormData(form);
-          formData.append("csrf_token", "{{.CSRFToken}}");
-
-          fetch("/search-availability-json", {
-            method: "post",
-            body: formData,
-          })
-            .then(response => response.json())
-            .then(data => {
-              console.log(data);
-              console.log(data.ok);
-              console.log(data.message);
-            })
-        }
-      });
-    });
-  </script>
-{{ end }}
+                fetch('/search-availability-json', {
+                    method: "post",
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        attention.custom({
+                            icon: "success",
+                            showConfirmButton: false,
+                            msg: '<p>Room is available!</p>'
+                                + '<p><a href="/book-room?id='
+                                + data.room_id
+                                + '&s='
+                                + data.start_date
+                                + '&e='
+                                + data.end_date
+                                + '" class="btn btn-primary">'
+                                + 'Book now!</a></p>',
+                        })
+                    }
+                    else
+                    {
+                        attention.error({
+                        msg: "No room available",
+                        })
+                    }
+                })
+            }
+        });
+    })
+</script>
+{{end}}

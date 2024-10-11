@@ -50,12 +50,14 @@ func TestRenderTemplate(t *testing.T) {
 	// threee methods: 'Header()', 'WriteHeader(i int)' & 'Write()'
 	var ww myWriter
 
-	err = RenderTemplate(&ww, r, "index.page.tmpl", &models.TemplateData{})
+	// TODO: this was 'RenderTemplate' before. Confirm that the change is ok
+	err = Template(&ww, r, "index.page.tmpl", &models.TemplateData{})
 	if err != nil {
 		t.Error("error writing template to browser", err)
 	}
 
-	err = RenderTemplate(&ww, r, "non-existent.page.tmpl", &models.TemplateData{})
+	// TODO: this was 'RenderTemplate' before. Confirm that the change is ok
+	err = Template(&ww, r, "non-existent.page.tmpl", &models.TemplateData{})
 	if err == nil {
 		t.Error("rendered template that does not exist")
 	}

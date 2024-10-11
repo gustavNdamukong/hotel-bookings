@@ -1,4 +1,4 @@
-{{ define "base" }}
+{{define "base"}}
     <!doctype html>
     <html lang="en">
 
@@ -101,6 +101,10 @@
         </div>
     </footer>
 
+    {{block "js" .}}
+
+    {{end}}
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
             integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
             crossorigin="anonymous"></script>
@@ -112,9 +116,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10.15.5/dist/sweetalert2.min.js"></script>
 
 
-    {{block "js" .}}
-
-    {{end}}
+    
 
     <script>
         let attention = Prompt();
@@ -138,19 +140,6 @@
         })();
 
 
-        //Skeleton of how to use the notie JS library for notifications
-        /*
-        function alertSuccess(msg) {
-        notie.alert({
-            type: success, // optional, default = 4, enum: [1, 2, 3, 4, 5, 'success', 'warning', 'error', 'info', 'neutral']
-            text: msg,
-            //stay: Boolean, // optional, default = false (should it stay on screen or not)
-            //time: Number, // optional, default = 3, minimum = 1 (these represent how long the popup will stay on screen for-in secs)
-            //position: String // optional, default = 'top', enum: ['top', 'bottom']
-        })
-        } */
-
-
         function notify(msg, msgType) {
             notie.alert({
                 type: msgType,
@@ -167,21 +156,17 @@
             })
         }
 
-
-
         {{with .Error}}
-            notify({{.}}, "error");
+            notify("{{.}}", "error");
         {{end}}
 
         {{with .Flash}}
-            notify({{.}}, "success");
+        notify("{{.}}", "success");
         {{end}}
 
         {{with .Warning}}
-            notify({{.}}, "warning");
+        notify("{{.}}", "warning");
         {{end}}
-
-
 
         function Prompt() {
             let toast = function (c) {
@@ -192,7 +177,6 @@
 
                 } = c;
 
-                // 'didOpen' is another (life-cycle hook) that will run after the modal displays
                 const Toast = Swal.mixin({
                     toast: true,
                     title: msg,
@@ -244,16 +228,20 @@
 
             async function custom(c) {
                 const {
+                    icon = "",
                     msg = "",
                     title = "",
+                    showConfirmButton = true,
                 } = c;
 
                 const {value: result} = await Swal.fire({
+                    icon: icon,
                     title: title,
                     html: msg,
                     backdrop: false,
                     focusConfirm: false,
                     showCancelButton: true,
+                    showConfirmButton: showConfirmButton,
                     willOpen: () => {
                         if (c.willOpen !== undefined) {
                             c.willOpen();
@@ -293,7 +281,7 @@
                 error: error,
                 custom: custom,
             }
-        }
+        } 
 
     </script>
 

@@ -6,7 +6,7 @@ import "testing"
 // if you want to run specific tests.
 // NOTES: find out what you want to do if you want to run all tests in the app, in one tun
 func TestRun(t *testing.T) {
-	err := run()
+	_, err := run()
 	if err != nil {
 		t.Error("Failed run()")
 	}
