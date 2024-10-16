@@ -1,4 +1,4 @@
-{{define "base"}}
+{{ define "base" }}
     <!doctype html>
     <html lang="en">
 
@@ -80,7 +80,7 @@
         </div>
     </nav>
 
-    {{block "content" .}}
+    {{ block "content" . }}
 
     {{end}}
 
@@ -101,7 +101,7 @@
         </div>
     </footer>
 
-    {{block "js" .}}
+    {{ block "js" . }}
 
     {{end}}
 
@@ -141,6 +141,7 @@
         })();
 
 
+        // see static/app.js for some notes on notie.alert parameters
         function notify(msg, msgType) {
             notie.alert({
                 type: msgType,

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
@@ -23,6 +24,57 @@ var app config.AppConfig
 var session *scs.SessionManager
 var pathToTemplates = "./../../templates"
 var functions = template.FuncMap{}
+
+func TestMain(m *testing.M) {
+	gob.Register(models.Reservation{})
+
+	// change this to true when in production
+	app.InProduction = false
+
+	// set up logging. Create a new logger that writes to the terminal (os.Stdout), prefix the msg
+	// with "INFO" & a tab, followed by the date & time
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	app.InfoLog = infoLog
+
+	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	app.ErrorLog = errorLog
+
+	// initialise a session
+	session = scs.New()
+
+	// optionally set lifetime of session
+	// 24 hours. A syntax error in this time specification will cause the session setting & retrieving of data not to work
+	session.Lifetime = 24 * time.Hour
+
+	// Name sets the name of the session cookie. It should not contain
+	// The default cookie name is "session".
+	// If your application uses two different sessions, you must make sure that
+	// the cookie name for each of these sessions is unique.
+	session.Cookie.Name = "testProj_session_id"
+	//by default it uses cookie for itas data storage, but it has different storages u can choose from eg DBs
+	session.Cookie.Persist = true // should the cookie persist after user closes the browser?
+	session.Cookie.SameSite = http.SameSiteLaxMode
+	session.Cookie.Secure = app.InProduction // set to true when using https in production
+
+	app.Session = session
+
+	templateCache, err := render.CreateTemplateCache()
+	if err != nil {
+		log.Fatal("Cannot create template cache")
+	}
+
+	app.TemplateCache = templateCache
+
+	//do a random global config setting change to test
+	app.UseCache = true
+
+	//set things up with our handlers
+	repo := NewTestRepo(&app)
+	NewHandlers(repo)
+	render.NewRenderer(&app)
+
+	os.Exit(m.Run())
+}
 
 func getRoutes() http.Handler {
 	// what am I going to put in the session
@@ -60,7 +112,7 @@ func getRoutes() http.Handler {
 	// templates will be like 'pathToTemplates' above
 	app.UseCache = true
 
-	repo := NewRepo(&app)
+	repo := NewTestRepo(&app)
 	NewHandlers(repo)
 
 	// TODO: 'render.NewTemplates' has been changed to 'render.NewRenderer'. Confirm all is okay
