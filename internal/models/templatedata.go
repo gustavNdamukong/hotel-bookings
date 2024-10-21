@@ -2,7 +2,7 @@ package models
 
 import "github.com/gustavNdamukong/hotel-bookings/internal/forms"
 
-// TemplateData holds data to be sent to templates
+// TemplateData holds data to be sent to templates/view files
 type TemplateData struct {
 	StringMap map[string]string
 	IntMap    map[string]int
@@ -20,4 +20,11 @@ type TemplateData struct {
 
 	//this will be used to validate forms on any page
 	Form *forms.Form
+
+	// NOTES: Since this struct is what carries data from the backend to all views, it makes sense to pass in
+	// it a flag that will be used by views to know if a user is logged in. The base template file eg will
+	// check it to know whether to show a login or logout link. If IsAuthenticated > 0 then user is logged in
+	// but if IsAuthenticated == 0, then the user is logged out.We will therefore update this in the backend
+	//whenever we login/logut a user.
+	IsAuthenticated int
 }

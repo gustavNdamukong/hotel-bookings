@@ -58,6 +58,16 @@ func TestMain(m *testing.M) {
 
 	app.Session = session
 
+	//to allow tests to pass, we need to simulate the sending and listening for mails which
+	//is happening in our mail application, for we do not want to actually send emails here
+	//during testing. Hence we create a similar mail channel here in the testing area with
+	//the same kinda func listenForMail() which will do something else. This way we will
+	//still achieve good test coverage.
+	mailChan := make(chan models.MailData)
+	app.MailChan = mailChan
+	defer close(mailChan)
+	listenForMail()
+
 	templateCache, err := render.CreateTemplateCache()
 	if err != nil {
 		log.Fatal("Cannot create template cache")
@@ -74,6 +84,17 @@ func TestMain(m *testing.M) {
 	render.NewRenderer(&app)
 
 	os.Exit(m.Run())
+}
+
+func listenForMail() {
+	//do the same thing that this same func does in the main app,
+	//but avoid sending an email
+	go func() {
+		for {
+			//do nopthing with what we get back from the MailChannel
+			_ = <-app.MailChan
+		}
+	}()
 }
 
 func getRoutes() http.Handler {

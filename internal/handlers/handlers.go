@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -90,8 +93,15 @@ func (m *Repository) Availability(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PostAvailability handles post
+// PostAvailability renders the search availability page
 func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "can't parse form!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
 	//this is how you extract values posted via a form
 	start := r.Form.Get("start")
 	end := r.Form.Get("end")
@@ -99,39 +109,40 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 	layout := "2006-01-02"
 	startDate, err := time.Parse(layout, start)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "can't parse start date!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 	endDate, err := time.Parse(layout, end)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "can't parse end date!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	// check availability of all rooms (it should return a slice of room models)
 	rooms, err := m.DB.SearchAvailabilityForAllRooms(startDate, endDate)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "can't get availability for rooms")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	if len(rooms) == 0 {
-		// no available rooms
-		m.App.Session.Put(r.Context(), "error", "No available room")
+		// no availabile rooms
+		m.App.Session.Put(r.Context(), "error", "No availabile room")
 		http.Redirect(w, r, "/search-availability", http.StatusSeeOther)
 		return
 	}
-
-	/////w.Write([]byte(fmt.Sprintln("WHAT IS GOING ON???")))
 
 	//prepare to send data of available rooms to the view to display to user
 	data := make(map[string]interface{})
 	data["rooms"] = rooms
 
-	// we need specific data about the dates (start & end) the user just choose to make a reservation for,
+	// we need specific data about the dates (start & end) the user just chose to make a reservation for,
 	// stored in a session for use in the template where we will be showing the user the rooms that are available
 	// for booking. The available rooms will be displayed to them as links, and we will automatically apply the
-	// users chosen reservation dates on which ever room they then choose.
+	// users chosen reservation dates on whichever room they then choose.
 	res := models.Reservation{
 		StartDate: startDate,
 		EndDate:   endDate,
@@ -142,11 +153,6 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "choose-room.page.tmpl", &models.TemplateData{
 		Data: data,
 	})
-
-	//cast the data to the required format
-	// send the data to the template
-	//convert the given text (to byte()) into a slice of bytes
-	//w.Write([]byte(fmt.Sprintf("start date is %s and end is %s", start, end)))
 }
 
 type jsonResponse struct {
@@ -520,6 +526,50 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//-------------------------------------------
+	// send email notifications - first to guest
+	htmlMessage := fmt.Sprintf(`
+			<strong>Reservation Confirmation</strong><br>
+			Dear %s, <br>
+			This is to confirm your reservation from %s to %s.
+		`, reservation.FirstName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
+
+	msg := models.MailData{
+		To:       reservation.Email,
+		From:     "gustavfn@yahoo.co.uk",
+		Subject:  "Reservation Confirmation",
+		Content:  htmlMessage,
+		Template: "basic.html",
+	}
+
+	m.App.MailChan <- msg
+	//-------------------------------------------
+
+	//-------------------------------------------
+	// send email notifications - first to property owner
+	htmlMessage = fmt.Sprintf(`
+			<strong>Reservation Notification</strong><br>
+			Dear %s, <br>
+			This is to notify you of a new reservation that has been booked for your property%s.<br>
+			The Booking is by %s %s and the reservation is <br>
+			from %s to %s.<br>
+
+			Kind regards<br>
+			The dream team
+		`, "IDoNotKnowOwnerName", reservation.Room.RoomName, reservation.FirstName, reservation.LastName,
+		reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
+
+	msg = models.MailData{
+		To:       "IDoNotKnowOwnerEmail@gmail.com",
+		From:     "gustavfn@yahoo.co.uk",
+		Subject:  "Reservation Notification",
+		Content:  htmlMessage,
+		Template: "basic.html",
+	}
+
+	m.App.MailChan <- msg
+	//-------------------------------------------
+
 	m.App.Session.Put(r.Context(), "reservation", reservation)
 	//http response 'StatusSeeOther' is equal to http response code 303
 	//which is ideal for redirections to handle post requests
@@ -570,9 +620,21 @@ func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
 	// NOTES: This is how to read URL params. A link from the view (choose-room.page.tmple)
 	// 	sends an id to the route 'mux.Get("/choose-room/{{id}}", handlers.Repo.ChooseRoom)'
 	//	which routes to this handle func, hence we need to retrieve the "id" URL param below.
-	roomID, err := strconv.Atoi(chi.URLParam(r, "id"))
+
+	// NOTES: This works well, however, this convenience function offered by chi, chi.URLPara(r, "id")
+	//	is really, hard to test. In truth, we don't even need to use it, since we can parse the URL
+	//	and find the id on our own. So change this code:
+
+	/* roomID, err := strconv.Atoi(chi.URLParam(r, "id")) */
+
+	// to this code: so we can test it more easily. Basically; we split the URL up by /, and grab the 3rd element
+	// In your test for ChooseRoom(), you will want to set the URL on your request as follows: req.RequestURI = "/choose-room/1"
+	exploded := strings.Split(r.RequestURI, "/")
+	roomID, err := strconv.Atoi(exploded[2])
+
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -640,4 +702,183 @@ func (m *Repository) BookRoom(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "make-reservation", http.StatusSeeOther)
 
+}
+
+// ShowLogin shows the login screen
+func (m *Repository) ShowLogin(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "login.page.tmpl", &models.TemplateData{
+		Form: forms.New(nil),
+	})
+}
+
+// PostShowLogin handles logging the user in
+func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
+	// NOTES: For security reasons, renew the session token whenever you are doing a login or logout
+	_ = m.App.Session.RenewToken(r.Context())
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+
+	form := forms.New(r.PostForm)
+
+	// validate form fields
+	form.Required("email", "password")
+	form.IsEmail("email")
+
+	if !form.Valid() {
+		render.Template(w, r, "login.page.tmpl", &models.TemplateData{
+			Form: form,
+		})
+		return
+	}
+
+	id, _, err := m.DB.Authenticate(email, password)
+	if err != nil {
+		log.Println(err)
+		m.App.Session.Put(r.Context(), "error", "Invalid login credentials")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+	}
+
+	//need to store their id in the session
+	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "flash", "Logged in successfully")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// Logout logs a user out
+// NOTES: Here is how you log a user out. Destroy the whole session & dont forget to renew the session token
+// which you should do every time you log a user in or out.
+func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
+	_ = m.App.Session.Destroy(r.Context())
+	_ = m.App.Session.RenewToken(r.Context())
+
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+}
+
+func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "admin-dashboard.page.tmpl", &models.TemplateData{})
+}
+
+// AdminReservations shows all reservations in admin dashboard
+func (m *Repository) AdminAllReservations(w http.ResponseWriter, r *http.Request) {
+	reservations, err := m.DB.AllReservations()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["reservations"] = reservations
+
+	render.Template(w, r, "admin-all-reservations.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+
+// AdminNewReservations shows all new reservations in admin dashboard
+func (m *Repository) AdminNewReservations(w http.ResponseWriter, r *http.Request) {
+	reservations, err := m.DB.AllNewReservations()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["reservations"] = reservations
+	render.Template(w, r, "admin-new-reservations.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+
+// AdminShowReservation shows the reservation in the admin dashboard
+func (m *Repository) AdminShowReservation(w http.ResponseWriter, r *http.Request) {
+	// NOTES: How to get a param value from the URL parameters
+	// we need two bits from the URL params so we know if we're looking at 'all' reservations
+	// or 'new' reservation, then the reservation id. We say exploded[4] coz that's the id's position
+	// in the URL when we split it by slashes (admin/, reservations/, all/new/, the ID)
+	exploded := strings.Split(r.RequestURI, "/")
+	id, err := strconv.Atoi(exploded[4])
+	if err != nil {
+		helpers.ServerError(w, err)
+	}
+
+	src := exploded[3]
+	stringMap := make(map[string]string)
+	stringMap["src"] = src
+
+	// get reservation from DB
+	res, err := m.DB.GetReservationById(id)
+	if err != nil {
+		helpers.ServerError(w, err)
+	}
+
+	data := make(map[string]interface{})
+	data["reservation"] = res
+
+	render.Template(w, r, "admin-reservations-show.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+		Data:      data,
+		Form:      forms.New(nil),
+	})
+}
+
+// AdminShowPostReservation updates a reservation in the admin dashboard
+func (m *Repository) AdminShowPostReservation(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	exploded := strings.Split(r.RequestURI, "/")
+	id, err := strconv.Atoi(exploded[4])
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	src := exploded[3]
+	stringMap := make(map[string]string)
+	stringMap["src"] = src
+
+	// get reservation from DB
+	res, err := m.DB.GetReservationById(id)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	//data := make(map[string]interface{})
+	//data["reservation"] = res
+	res.FirstName = r.Form.Get("first_name")
+	res.LastName = r.Form.Get("last_name")
+	res.Email = r.Form.Get("email")
+	res.Phone = r.Form.Get("phone")
+
+	err = m.DB.UpdateReservation(res)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "flash", "Changes saved")
+	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
+}
+
+func (m *Repository) AdminReservationsCalendar(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "admin-reservations-calendar.page.tmpl", &models.TemplateData{})
+}
+
+// AdminProcessReservation marks a reservation as processed
+func (m *Repository) AdminProcessReservation(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	src := chi.URLParam(r, "src")
+	_ = m.DB.UpdateProcessed(id, 1)
+	m.App.Session.Put(r.Context(), "flash", "Reservation marked as processed")
+
+	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
 }

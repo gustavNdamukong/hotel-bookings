@@ -30,3 +30,12 @@ func ServerError(w http.ResponseWriter, err error) {
 	// give some kind of feedback to the user
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
+
+// NOTES: This is how to quickly check if a user is logged in. Its simple-it returns true or false.
+// Note that 'user_id' is the session var that is set when a user is successfully logged in.
+// This will be called regularly by a middleware function Auth() (in 'cmd/web/middleware.go') in all
+// pages to check if the user is logged in or not.
+func IsAuthenticated(r *http.Request) bool {
+	exists := app.Session.Exists(r.Context(), "user_id")
+	return exists
+}

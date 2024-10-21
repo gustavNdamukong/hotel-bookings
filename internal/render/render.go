@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"html/template"
 
@@ -15,9 +16,28 @@ import (
 	"github.com/justinas/nosurf"
 )
 
-// This will hold all custom functions that we would want to create and make
-// available to our golang templates
-var functions = template.FuncMap{}
+/*
+NOTES: This will hold all custom functions that we would want to create and make
+available to our golang templates. Basically; this is how to create custom funcs
+for golang templates-similar to how there's a way to create custom func for other
+templating engines like Twig. It is very important to note that having created the
+function map like this (template.FuncMap which we've stored in the variable functions
+below); that is not enough. It will only work when the function map is applied to
+your template when you're parsing it. In our app here we are parsing the template in
+CreateTemplateCache() below in this line:
+
+	templateSet, err := template.New(name).Funcs(functions).ParseFiles(page)
+
+What does the magic to apply your custom function to the template is this call to
+Funcs(functions) which is chained on to template.New(name). 'name' is the target
+template file by the way. The custom function of yours will then become available
+in your target view template and can be used inside of it like so:
+
+	<td>{{ myCustomFunction .StartDate }}</td>
+*/
+var functions = template.FuncMap{
+	"humanDate": HumanDate,
+}
 
 var app *config.AppConfig
 
@@ -31,9 +51,15 @@ func NewRenderer(a *config.AppConfig) {
 	app = a
 }
 
-// AddDefaultData will be used to pass to views data that should be sent to all views by default
+// NOTES: accepts a date & returns in the format 'YYYY-MM-DD'
+func HumanDate(t time.Time) string {
+	return t.Format("2006-01-02")
+}
+
+// NOTES: AddDefaultData will be used to pass to views data that should be sent to all views by default
 // PopString is a built-in method on the Session library which puts something in the session
-// which only lasts until the page is refreshed
+// which only lasts until the page is refreshed.
+// NOTES: So here we also learn how to flash data to the session
 func AddDefaultData(tData *models.TemplateData, request *http.Request) *models.TemplateData {
 	tData.Flash = app.Session.PopString(request.Context(), "flash")
 	tData.Error = app.Session.PopString(request.Context(), "error")
@@ -41,6 +67,10 @@ func AddDefaultData(tData *models.TemplateData, request *http.Request) *models.T
 
 	/////tData.StringMap["defaultAppTitle"] = app.DefaultAppTitle
 	tData.CSRFToken = nosurf.Token(request) //this will be used by all views with forms
+	// NOTES: How to check if the session contains a variable
+	if app.Session.Exists(request.Context(), "user_id") {
+		tData.IsAuthenticated = 1
+	}
 	return tData
 }
 
@@ -57,7 +87,7 @@ func Template(w http.ResponseWriter, request *http.Request, requestedTemplateNam
 		templateCache, _ = CreateTemplateCache()
 	}
 
-	//get the requested template from cache
+	//store the parsed template (view file) in the cache if its not there already &, or, get the requested template from cache.
 	parsedTemplate, ok := templateCache[requestedTemplateName]
 	if !ok {
 		//cannot get template from cache
@@ -78,7 +108,7 @@ func Template(w http.ResponseWriter, request *http.Request, requestedTemplateNam
 		log.Fatal(err)
 	}
 
-	//render the template
+	// render the template
 	_, err = buffer.WriteTo(w)
 
 	if err != nil {
@@ -112,7 +142,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 		//extract just the actual file name from the full path (since pages come as the full paths to the files)
 		name := filepath.Base(page)
 		//parse the file & store it in a template called 'name'
-		templateSet, err := template.New(name).ParseFiles(page)
+		templateSet, err := template.New(name).Funcs(functions).ParseFiles(page)
 		if err != nil {
 			//return whatever the current value of myCache is
 			return myCache, err
@@ -133,7 +163,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 			}
 		}
 
-		//add the final resulting template to our map
+		//add the final resulting template to our map, which is the cache.
 		myCache[name] = templateSet
 	}
 

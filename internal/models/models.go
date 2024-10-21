@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 // These models will be useful to us once we start writing our DB methods.
 // Reservation holds reservation data
@@ -53,6 +55,7 @@ type Reservation struct {
 	Created_at time.Time
 	Updated_at time.Time
 	Room       Room
+	Processed  int
 }
 
 // RoomRestriction is the RoomRestriction model
@@ -69,4 +72,13 @@ type RoomRestriction struct {
 	// DOC: we may not need these, but we place them here in case we need them
 	Reservation Reservation
 	Restriction Restriction
+}
+
+// MailData holds an email message
+type MailData struct {
+	To       string
+	From     string
+	Subject  string
+	Content  string
+	Template string
 }

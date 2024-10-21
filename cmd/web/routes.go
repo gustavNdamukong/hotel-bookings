@@ -15,6 +15,7 @@ func routes(app *config.AppConfig) http.Handler {
 
 	mux.Use(middleware.Recoverer)
 	mux.Use(NoSurf) //ignore any post request that doesn't have a proper CSRF token
+	// NOTES: Here is how you use a middleware already defined in 'cmd/web/middleware.go/
 	mux.Use(SessionLoad)
 
 	mux.Get("/", handlers.Repo.Home)
@@ -34,10 +35,33 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Get("/make-reservation", handlers.Repo.Reservation)
 	mux.Post("/make-reservation", handlers.Repo.PostReservation)
 	mux.Get("/reservation-summary", handlers.Repo.ReservationSummary)
+	mux.Get("/user/login", handlers.Repo.ShowLogin)
+	mux.Post("/user/login", handlers.Repo.PostShowLogin)
+
+	mux.Get("/user/logout", handlers.Repo.Logout)
 
 	//create a file server to serve any files or images etc
 	fileserver := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileserver))
+
+	// NOTES: How to define a group of routes only available ONLY to authenticated users
+	// In this case, we are saying this should apply to any route that starts with '/admin'. This will be
+	// the group eg '/admin/properties', '/admin/dashboard' etc
+	mux.Route("/admin", func(mux chi.Router) {
+		// NOTES: Here is how you use a middleware. This middleware 'Auth' is defined in 'cmd/web/middleware.go/
+		// in this case, we want to apply the 'Auth' middleware to all routes in this group, which inthis case will
+		// only allow access to authenticaterd users.
+		/////mux.Use(Auth) (NOTES: Commenting this line out will turn of authentrication for this route group)
+		mux.Get("/dashboard", handlers.Repo.AdminDashboard)
+
+		mux.Get("/reservations-new", handlers.Repo.AdminNewReservations)
+		mux.Get("/reservations-all", handlers.Repo.AdminAllReservations)
+		mux.Get("/reservations-calendar", handlers.Repo.AdminReservationsCalendar)
+		mux.Get("/process-reservation/{src}/{id}", handlers.Repo.AdminProcessReservation)
+
+		mux.Get("/reservations/{src}/{id}", handlers.Repo.AdminShowReservation)
+		mux.Post("/reservations/{src}/{id}", handlers.Repo.AdminShowPostReservation)
+	})
 
 	return mux
 }
