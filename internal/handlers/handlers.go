@@ -870,7 +870,128 @@ func (m *Repository) AdminShowPostReservation(w http.ResponseWriter, r *http.Req
 }
 
 func (m *Repository) AdminReservationsCalendar(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, r, "admin-reservations-calendar.page.tmpl", &models.TemplateData{})
+	// assume that there is no month/year specified in the URL (if it was, it will be like this ?'y=2024&m=06')
+	now := time.Now()
+
+	if r.URL.Query().Get("y") != "" {
+		//therefore the year & month are specified
+		// NOTES: dates/times from the browser have to be converted for use in Go backend.
+		//	Here's how (hint: use strconv.Atoi())
+		year, _ := strconv.Atoi(r.URL.Query().Get("y"))
+		month, _ := strconv.Atoi(r.URL.Query().Get("m"))
+
+		// NOTES: Dates in Go is handled by time.Date() wh takes a lot of params:
+		//		-the converted year (converted using strconv.Atoi() as above)
+		//		-the converted month (converted using strconv.Atoi() as above) which has to be converted again using time.Month()
+		//		-the day in the month (1 stands for the first day-which all months have)
+		//		-the hours (0)
+		//		-the minutes (0)
+		//		-the seconds (0)
+		//		-the nano seconds (0)
+		//		-the location timezone (eg time.UTC)
+		now = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	}
+
+	// NOTES: Prepare to pass a formatted date to the template
+	data := make(map[string]interface{})
+	data["now"] = now
+
+	// NOTES: Dates in go. Here is how to add a date to a date eg here we add one month to today's date
+	//		we use now.AddDate(numberOfyears, numberOfMonths, numberOfdays). A minus digit will make it in the past
+	next := now.AddDate(0, 1, 0)  // next month
+	last := now.AddDate(0, -1, 0) // last month
+
+	// NOTES: How to format date/time. You can separate the bits, eg here we format month to a 2-digit
+	nextMonth := next.Format("01")
+
+	// format a year as a 4-digit year
+	nextMonthYear := next.Format("2006")
+
+	lastMonth := last.Format("01")
+	lastMonthYear := last.Format("2006")
+
+	stringMap := make(map[string]string)
+	stringMap["next_month"] = nextMonth
+	stringMap["next_month_year"] = nextMonthYear
+	stringMap["last_month"] = lastMonth
+	stringMap["last_month_year"] = lastMonthYear
+
+	stringMap["this_month"] = now.Format("01")
+	stringMap["this_month_year"] = now.Format("2006")
+
+	// NOTES: Dates in go-see techniques to get various data about dates below
+	// We need to know how many days there are in each month
+	// & also to get the first & last days of the month
+	currentYear, currentMonth, _ := now.Date()
+	currentLocation := now.Location()
+	firstOfMonth := time.Date(currentYear, currentMonth, 1, 0, 0, 0, 0, currentLocation)
+	lastOfMonth := firstOfMonth.AddDate(0, 1, -1)
+
+	intMap := make(map[string]int)
+	intMap["days_in_month"] = lastOfMonth.Day()
+
+	rooms, err := m.DB.AllRooms()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	data["rooms"] = rooms
+
+	// We need to find a way to pass to the template data about all reserved rooms & all blocked (non-available) rooms
+	for _, x := range rooms {
+		// create maps to hold this data
+		reservationMap := make(map[string]int)
+		blockMap := make(map[string]int)
+
+		for d := firstOfMonth; d.After(lastOfMonth) == false; d = d.AddDate(0, 0, 1) {
+			reservationMap[d.Format("2006-01-02")] = 0
+			blockMap[d.Format("2006-01-02")] = 0
+		}
+
+		// get all the restrictions (existing bookings) for this room, for the current month
+		restrictions, err := m.DB.GetRestrictionsForRoomByDate(x.ID, firstOfMonth, lastOfMonth)
+		if err != nil {
+			helpers.ServerError(w, err)
+			return
+		}
+		// loop through the restrictions & determine whether its a reservation or a block
+		//	if its a reservation, we'll put it in our reservation map, if its a block, we'll
+		//	put it in our bloack map
+		for _, y := range restrictions {
+			if y.ReservationID > 0 {
+				// its a reservation
+				// reservations can be 1 day long, or 99 days long
+				// we now need to loop again thru each of the dates & enter them into our reservation map
+				// NOTES: In this for loop, we start from an index which will be the reservation start date,
+				//	when we get to the end date (d.After(y.EndDate) == false), then we add one day
+				for d := y.StartDate; d.After(y.EndDate) == false; d = d.AddDate(0, 0, 1) {
+					// put each reservation ID against its date in the reservationMap
+					reservationMap[d.Format("2006-01-02")] = y.ReservationID
+				}
+			} else {
+				// its a block
+				blockMap[y.StartDate.Format("2006-01-02")] = y.RestrictionID
+			}
+		}
+
+		// pass this restriction/block data to the template where it will be read & used
+		data[fmt.Sprintf("reservation_map_%d", x.ID)] = reservationMap
+		data[fmt.Sprintf("block_map_%d", x.ID)] = blockMap
+
+		// store the blockmap for this room in the session
+		// This is coz when the calendar is rendered to the screen, as the user makes changes to dates,
+		//	as we go ahead to process the users's wishes, we need to know what was currently blocked before
+		//	their changes, so we know how to perform the update.
+		m.App.Session.Put(r.Context(), fmt.Sprintf("block_map_%d", x.ID), blockMap)
+
+	}
+
+	render.Template(w, r, "admin-reservations-calendar.page.tmpl", &models.TemplateData{
+		StringMap: stringMap,
+		Data:      data,
+		IntMap:    intMap,
+	})
 }
 
 // AdminProcessReservation marks a reservation as processed
@@ -879,6 +1000,16 @@ func (m *Repository) AdminProcessReservation(w http.ResponseWriter, r *http.Requ
 	src := chi.URLParam(r, "src")
 	_ = m.DB.UpdateProcessed(id, 1)
 	m.App.Session.Put(r.Context(), "flash", "Reservation marked as processed")
+
+	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
+}
+
+// AdminDeleteReservation deletes a reservation
+func (m *Repository) AdminDeleteReservation(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	src := chi.URLParam(r, "src")
+	_ = m.DB.DeleteReservation(id)
+	m.App.Session.Put(r.Context(), "flash", "Reservation deleted")
 
 	http.Redirect(w, r, fmt.Sprintf("/admin/reservations-%s", src), http.StatusSeeOther)
 }

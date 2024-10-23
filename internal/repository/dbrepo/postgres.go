@@ -442,7 +442,7 @@ func (m *postgresDBRepo) DeleteReservation(id int) error {
 	defer cancel()
 
 	query := `
-		DELETE FROM reservation 
+		DELETE FROM reservations 
 		WHERE id = $1`
 	_, err := m.DB.ExecContext(ctx, query, id)
 
@@ -467,4 +467,88 @@ func (m *postgresDBRepo) UpdateProcessed(id, processed int) error {
 		return err
 	}
 	return nil
+}
+
+// AllRooms returns all rooms
+func (m *postgresDBRepo) AllRooms() ([]models.Room, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var rooms []models.Room
+
+	query := `
+		SELECT id, room_name, created_at, updated_at
+		FROM rooms
+		ORDER BY room_name`
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return rooms, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var rm models.Room
+		err := rows.Scan(
+			&rm.ID,
+			&rm.RoomName,
+			&rm.Created_at,
+			&rm.Updated_at,
+		)
+		if err != nil {
+			return rooms, err
+		}
+		rooms = append(rooms, rm)
+	}
+
+	if err = rows.Err(); err != nil {
+		return rooms, err
+	}
+
+	return rooms, nil
+}
+
+// GetRestrictionsForRoomByDate returns restrictions for a room by date range
+func (m *postgresDBRepo) GetRestrictionsForRoomByDate(roomId int, start, end time.Time) ([]models.RoomRestriction, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var restrictions []models.RoomRestriction
+
+	// NOTES: DB here is how we use coalesce. In the 'room_restrictions' table reservation_id
+	//	will not always be present & will cause errors when selecting & scanning its value in go.
+	//	Hence we use coalesce to ensure if the value of that field is NULL, we default it to 0.
+	query := `
+		SELECT id, coalesce(reservation_id, 0), restriction_id, room_id, start_date, end_date
+		FROM room_restrictions
+		WHERE $1 < end_date 
+		AND $2 >= start_date
+		AND room_id = $3`
+	rows, err := m.DB.QueryContext(ctx, query, start, end, roomId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var rr models.RoomRestriction
+		err := rows.Scan(
+			&rr.ID,
+			&rr.ReservationID,
+			&rr.RestrictionID,
+			&rr.RoomId,
+			&rr.StartDate,
+			&rr.EndDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		restrictions = append(restrictions, rr)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return restrictions, nil
 }

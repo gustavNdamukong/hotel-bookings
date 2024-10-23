@@ -36,7 +36,10 @@ in your target view template and can be used inside of it like so:
 	<td>{{ myCustomFunction .StartDate }}</td>
 */
 var functions = template.FuncMap{
-	"humanDate": HumanDate,
+	"humanDate":  HumanDate,
+	"formatDate": FormatDate,
+	"iterate":    Iterate,
+	"add":        Add,
 }
 
 var app *config.AppConfig
@@ -51,9 +54,32 @@ func NewRenderer(a *config.AppConfig) {
 	app = a
 }
 
+// NOTES: There is no built-in way to loop through stuff in go templates, probably coz its easy to
+//
+//	do it on ur own. Here we create a custom template func to do so
+//
+// Iterate returns a slice of ints, starting from 1 up to count
+func Iterate(count int) []int {
+	// return a slice coz its sth u can iterate over
+	var i int
+	var items []int
+	for i = 0; i < count; i++ {
+		items = append(items, i)
+	}
+	return items
+}
+
+func Add(a, b int) int {
+	return a + b
+}
+
 // NOTES: accepts a date & returns in the format 'YYYY-MM-DD'
 func HumanDate(t time.Time) string {
 	return t.Format("2006-01-02")
+}
+
+func FormatDate(t time.Time, f string) string {
+	return t.Format(f)
 }
 
 // NOTES: AddDefaultData will be used to pass to views data that should be sent to all views by default
