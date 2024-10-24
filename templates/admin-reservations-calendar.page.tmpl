@@ -15,7 +15,7 @@
     <div class="container col-md-12">
         <h2>Reservations Calendar</h2>
         <div class="text-center">
-            {{/* NOTES: How to format date in the template-formatDate() is a custom template func 
+            {{/* notes: How to format date in the template-formatDate() is a custom template func 
                 Here we want to display month names not their digits, & year in 4 digits.
             */}}
             <h3>{{ formatDate $now "January" }} {{ formatDate $now "2006" }}</h3>
@@ -48,6 +48,13 @@
 
             {{ range $rooms }}
                 {{ $roomID := .ID }}
+                {{/* 
+                    notes: to get a value from a variable that's outside of this loop (rooms loop)
+                    you do that by placing a $ sign in front of it (eg $.Data).
+                    Also, see below how to use Sprintf() within a template. Its simply 'printf'
+                 */}}
+                {{ $blocks := index $.Data (printf "block_map_%d" .ID) }}
+                {{ $reservations := index $.Data (printf "reservation_map_%d" .ID) }}
 
                 <h4 class="mt-4">{{ .RoomName }}</h4>
 
@@ -57,7 +64,7 @@
                         <tr class="table-dark">
                             {{ range $index := iterate $daysInMonth }}
                                 <td class="text-center">
-                                    {{/* NOTES: 
+                                    {{/* notes: 
                                         we add 1 to everyday of month here to avoid a month showing 
                                         in calendar as 0 
                                     */}}
@@ -69,7 +76,34 @@
                         <tr>
                             {{ range $index := iterate $daysInMonth }}
                                 <td class="text-center">
-                                    <input type="checkbox">
+                                    {{/* 
+                                        First thing in this td, we need to check 
+                                            -if there is a reservation & mark the field as already reserved (eg with letter R). 
+                                                There will be a reservation if any given date in a month has an entry in the 
+                                                reservationMap ($reservations) against that day-of-the-month's date key, that 
+                                                is greater than 0.  
+                                        If not then there can only two other options:
+                                            -either a block, which we will check the box for, or;
+                                            -its an open date, so we leave the box unchecked
+                                     */}}
+                                     {{/* 
+                                        notes: how to use a greater than conditional check in go templates. The syntax is: 'gt firstValue secondValue' 
+                                    */}}
+                                    {{ if gt (index $reservations (printf "%s-%s-%d" $currentYear $currentMonth (add $index 1))) 0 }}
+                                        <a href="/admin/reservations/cal/{{index $reservations (printf "%s-%s-%d" $currentYear $currentMonth (add $index 1)) }}">
+                                            <span class="text-danger">R</span>
+                                        </a>
+                                    {{ else }}
+                                        <input 
+                                            {{ if gt (index $blocks (printf "%s-%s-%d" $currentYear $currentMonth (add $index 1))) 0 }}
+                                                checked
+                                                name="remove_block_{{ $roomID }}_{{ printf "%s-%s-%d" $currentYear $currentMonth (add $index 1) }}"
+                                                value="{{ index $blocks (printf "%s-%s-%d" $currentYear $currentMonth (add $index 1)) }}"
+                                            {{ else }}
+                                                name="add_block_{{ $roomID }}_{{ printf "%s-%s-%d" $currentYear $currentMonth (add $index 1) }}"
+                                            {{ end }}
+                                            type="checkbox">
+                                    {{ end }}
                                 </td>
                             {{ end }}
                         </tr>

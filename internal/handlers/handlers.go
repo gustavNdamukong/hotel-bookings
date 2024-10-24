@@ -944,12 +944,17 @@ func (m *Repository) AdminReservationsCalendar(w http.ResponseWriter, r *http.Re
 		reservationMap := make(map[string]int)
 		blockMap := make(map[string]int)
 
+		// make sure there is a default entry for each day in the month
+		// NOTES: This is a short form 'for' of a loop. Basically, start from first day of the month
+		//	go through all the days of the month, and without passing the last day of thast month,
+		//	add one day to each day number you come across.
 		for d := firstOfMonth; d.After(lastOfMonth) == false; d = d.AddDate(0, 0, 1) {
-			reservationMap[d.Format("2006-01-02")] = 0
-			blockMap[d.Format("2006-01-02")] = 0
+			// You end up with these two maps below having an entry for each day of each month
+			reservationMap[d.Format("2006-01-2")] = 0
+			blockMap[d.Format("2006-01-2")] = 0
 		}
 
-		// get all the restrictions (existing bookings) for this room, for the current month
+		// get all the restrictions (existing bookings) for the current month
 		restrictions, err := m.DB.GetRestrictionsForRoomByDate(x.ID, firstOfMonth, lastOfMonth)
 		if err != nil {
 			helpers.ServerError(w, err)
@@ -967,11 +972,19 @@ func (m *Repository) AdminReservationsCalendar(w http.ResponseWriter, r *http.Re
 				//	when we get to the end date (d.After(y.EndDate) == false), then we add one day
 				for d := y.StartDate; d.After(y.EndDate) == false; d = d.AddDate(0, 0, 1) {
 					// put each reservation ID against its date in the reservationMap
-					reservationMap[d.Format("2006-01-02")] = y.ReservationID
+					reservationMap[d.Format("2006-01-2")] = y.ReservationID
 				}
 			} else {
 				// its a block
-				blockMap[y.StartDate.Format("2006-01-02")] = y.RestrictionID
+				// TODO: Added this 'for' code so that multiple blocked dates to be checked, rather than just 1
+				for d := y.StartDate; d.After(y.EndDate) == false; d = d.AddDate(0, 0, 1) {
+					// put each reservation ID against its date in the blockMap
+					/////reservationMap[d.Format("2006-01-2")] = y.ReservationID
+					blockMap[d.Format("2006-01-2")] = y.RestrictionID
+				}
+				//TODO: Removed the line below as it was allowing only the date of the start date to be marked as blocked
+				//	rather than the whole range of dates covered by the start to end dates
+				/////blockMap[y.StartDate.Format("2006-01-2")] = y.RestrictionID
 			}
 		}
 

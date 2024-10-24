@@ -518,12 +518,22 @@ func (m *postgresDBRepo) GetRestrictionsForRoomByDate(roomId int, start, end tim
 	// NOTES: DB here is how we use coalesce. In the 'room_restrictions' table reservation_id
 	//	will not always be present & will cause errors when selecting & scanning its value in go.
 	//	Hence we use coalesce to ensure if the value of that field is NULL, we default it to 0.
+
+	/* MODIFIED THIS TO QUERY BELOW - NEEDS TESTING
 	query := `
 		SELECT id, coalesce(reservation_id, 0), restriction_id, room_id, start_date, end_date
 		FROM room_restrictions
-		WHERE $1 < end_date 
+		WHERE $1 < end_date
 		AND $2 >= start_date
 		AND room_id = $3`
+	*/
+
+	query := `
+	SELECT id, coalesce(reservation_id, 0), restriction_id, room_id, start_date, end_date
+	FROM room_restrictions
+	WHERE NOT ($1 > end_date OR $2 < start_date)
+	AND room_id = $3`
+
 	rows, err := m.DB.QueryContext(ctx, query, start, end, roomId)
 	if err != nil {
 		return nil, err
