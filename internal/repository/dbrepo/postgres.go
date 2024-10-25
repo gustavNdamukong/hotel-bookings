@@ -3,6 +3,7 @@ package dbrepo
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/gustavNdamukong/hotel-bookings/internal/models"
@@ -16,6 +17,7 @@ func (m *postgresDBRepo) AllUsers() bool {
 // InsertReservation inserts a reservation to the DB
 // NOTES: to return multiple values, comma-separate them in parentheses eg (int, error) below.
 func (m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) {
+	log.Println("IN InsertReservation() ABOUT TO SAVE RESERVATION") /////
 	/*
 	 NOTES: Once the DB connectionn is open, we want to be able to close it when its done doing its job, or if it crashes,  or times out.
 	 To do so, Go has a concept of 'context' which you set with a timeout for it to be cancelled. Lets go for a 3 seconds timeout.
@@ -519,20 +521,19 @@ func (m *postgresDBRepo) GetRestrictionsForRoomByDate(roomId int, start, end tim
 	//	will not always be present & will cause errors when selecting & scanning its value in go.
 	//	Hence we use coalesce to ensure if the value of that field is NULL, we default it to 0.
 
-	/* MODIFIED THIS TO QUERY BELOW - NEEDS TESTING
+	//TODO: MODIFIED THIS TO QUERY BELOW - NEEDS TESTING
 	query := `
 		SELECT id, coalesce(reservation_id, 0), restriction_id, room_id, start_date, end_date
 		FROM room_restrictions
 		WHERE $1 < end_date
 		AND $2 >= start_date
 		AND room_id = $3`
-	*/
 
-	query := `
+	/*query := `
 	SELECT id, coalesce(reservation_id, 0), restriction_id, room_id, start_date, end_date
 	FROM room_restrictions
 	WHERE NOT ($1 > end_date OR $2 < start_date)
-	AND room_id = $3`
+	AND room_id = $3`*/
 
 	rows, err := m.DB.QueryContext(ctx, query, start, end, roomId)
 	if err != nil {
@@ -561,4 +562,52 @@ func (m *postgresDBRepo) GetRestrictionsForRoomByDate(roomId int, start, end tim
 	}
 
 	return restrictions, nil
+}
+
+// InsertBlockForRoom inserts a room restriction
+func (m *postgresDBRepo) InsertBlockForRoom(id int, startDate time.Time) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		INSERT INTO room_restrictions (start_date, end_date, room_id, restriction_id,
+		created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)`
+
+	_, err := m.DB.ExecContext(
+		ctx,
+		query,
+		startDate,
+		startDate.AddDate(0, 0, 1),
+		id,
+		2,
+		time.Now(),
+		time.Now())
+
+	// we return 0 for no last inserted ID returned
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+// DeleteBlockById deletes a room restriction
+func (m *postgresDBRepo) DeleteBlockById(id int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		DELETE FROM room_restrictions WHERE id = $1`
+
+	_, err := m.DB.ExecContext(ctx, query, id)
+
+	// we return 0 for no last inserted ID returned
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }

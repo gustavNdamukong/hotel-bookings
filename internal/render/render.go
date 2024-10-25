@@ -91,7 +91,6 @@ func AddDefaultData(tData *models.TemplateData, request *http.Request) *models.T
 	tData.Error = app.Session.PopString(request.Context(), "error")
 	tData.Warning = app.Session.PopString(request.Context(), "warning")
 
-	/////tData.StringMap["defaultAppTitle"] = app.DefaultAppTitle
 	tData.CSRFToken = nosurf.Token(request) //this will be used by all views with forms
 	// NOTES: How to check if the session contains a variable
 	if app.Session.Exists(request.Context(), "user_id") {

@@ -8,7 +8,7 @@
                 {{ $res := index .Data "reservation" }}
 
                 {{/* 
-                  NOTES: Here is how to make comments in go templates. Note that there should be no space between
+                  Notes: here is how to make comments in go templates. Note that there should be no space between
                   the curly braces and the slashes.
                   From the Go handler in the backend that renders this view, the data to be passed through is 
                   prepared like so:
@@ -34,7 +34,7 @@
 
                 <h1 class="mt-3">{{index .StringMap "title" }}</h1>
 
-                <p><strong>Reservation Details</strong><br>
+                <p><strong>Reservation DetailsHHHHHHHHHHHHHHHH</strong><br>
                   Room: {{ $res.Room.RoomName }}<br>
                   Arrival: {{index .StringMap "start_date" }}<br>
                   Departure: {{index .StringMap "end_date" }}

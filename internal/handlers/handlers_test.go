@@ -776,7 +776,7 @@ func TestRepository_ChooseRoom(t *testing.T) {
 	}
 
 	///*****************************************
-	//// second case -- reservation not in session
+	// second case -- reservation not in session
 	//*****************************************/
 	req, _ = http.NewRequest("GET", "/choose-room/1", nil)
 	ctx = getCtx(req)
@@ -794,7 +794,7 @@ func TestRepository_ChooseRoom(t *testing.T) {
 	}
 
 	///*****************************************
-	//// third case -- missing url parameter, or malformed parameter
+	// third case -- missing url parameter, or malformed parameter
 	//*****************************************/
 	req, _ = http.NewRequest("GET", "/choose-room/fish", nil)
 	ctx = getCtx(req)
