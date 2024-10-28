@@ -51,7 +51,9 @@ func routes(app *config.AppConfig) http.Handler {
 		// NOTES: Here is how you use a middleware. This middleware 'Auth' is defined in 'cmd/web/middleware.go/
 		// in this case, we want to apply the 'Auth' middleware to all routes in this group, which inthis case will
 		// only allow access to authenticaterd users.
-		/////mux.Use(Auth) (NOTES: Commenting this line out will turn of authentrication for this route group)
+
+		// NOTES: Commenting the following line out (mux.Use(Auth)) turns off authentrication for this route group
+		/////mux.Use(Auth)
 		mux.Get("/dashboard", handlers.Repo.AdminDashboard)
 
 		mux.Get("/reservations-new", handlers.Repo.AdminNewReservations)

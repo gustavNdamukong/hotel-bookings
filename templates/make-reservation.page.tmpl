@@ -34,8 +34,9 @@
 
                 <h1 class="mt-3">{{index .StringMap "title" }}</h1>
 
-                <p><strong>Reservation DetailsHHHHHHHHHHHHHHHH</strong><br>
-                  Room: {{ $res.Room.RoomName }}<br>
+                <p><strong>Reservation Details</strong><br>
+                  Room name: {{ $res.Room.RoomName }}<br>
+                  {{/*Room: {{ $res.RoomId }}<br> */}}
                   Arrival: {{index .StringMap "start_date" }}<br>
                   Departure: {{index .StringMap "end_date" }}
                 </p>

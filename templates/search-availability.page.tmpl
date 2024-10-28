@@ -1,5 +1,6 @@
 {{ template "base" . }}
 
+
 {{ define "content" }}
 
     <div class="container">
@@ -37,11 +38,11 @@
 
 {{ define "js" }}
     <script>
-        {{/* Datepicker documentation:  
+        /* Datepicker documentation:  
             https://mymth.github.io/vanillajs-datepicker/#/options
 
             minDate: new Date(), should not allow a user choose a date in the past
-        */}}
+        */
         const elem = document.getElementById('reservation-dates');
         const rangePicker = new DateRangePicker(elem, {
             format: "yyyy-mm-dd",

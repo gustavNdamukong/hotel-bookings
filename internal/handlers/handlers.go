@@ -98,11 +98,11 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't parse form!")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	//this is how you extract values posted via a form
+	// NOTES: this is how you extract values posted via a form
 	start := r.Form.Get("start")
 	end := r.Form.Get("end")
 
@@ -110,13 +110,13 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 	startDate, err := time.Parse(layout, start)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't parse start date!")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	endDate, err := time.Parse(layout, end)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't parse end date!")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 	rooms, err := m.DB.SearchAvailabilityForAllRooms(startDate, endDate)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't get availability for rooms")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -262,7 +262,7 @@ func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		m.App.Session.Put(r.Context(), "error", "cannot get reservation from session")
 		//NOTES: How to redirect user to another route
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -270,7 +270,7 @@ func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot find room with that id")
 		//NOTES: How to redirect user to another route
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -322,7 +322,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			m.App.Session.Put(r.Context(), "error", "cannot parse form")
 			//NOTES: How to redirect user to another route
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 	*/
@@ -394,7 +394,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		newReservationID, err := m.DB.InsertReservation(reservation)
 		if err != nil {
 			m.App.Session.Put(r.Context(), "error", "cannot insert reservation into database")
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			// NOTES: this is how we can make use of our error helper to throw errors
 			return
 		}
@@ -419,7 +419,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		err = m.DB.InsertRoomRestriction(restriction)
 		if err != nil {
 			m.App.Session.Put(r.Context(), "error", "cannot insert room restriction!")
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
@@ -435,7 +435,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot parse form")
 		//NOTES: How to redirect user to another route
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -449,21 +449,28 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	startDate, err := time.Parse(layout, startD)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't parse start date")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	endDate, err := time.Parse(layout, endD)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't get parse end date")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	roomID, err := strconv.Atoi(r.Form.Get("room_id"))
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "invalid data!")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	room, err := m.DB.GetRoomById(roomID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "invalid data!")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -475,6 +482,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		StartDate: startDate,
 		EndDate:   endDate,
 		RoomId:    roomID,
+		Room:      room,
 	}
 
 	form := forms.New(r.PostForm)
@@ -487,21 +495,28 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	if !form.Valid() {
 		data := make(map[string]interface{})
 		data["reservation"] = reservation
+
+		// We need to pass back some data into StringMap which the form's hidden fields use
+		stringMap := make(map[string]string)
+		stringMap["start_date"] = startD
+		stringMap["end_date"] = endD
+		stringMap["title"] = "Make Reservation"
+
 		//http.Error(w, "my own error message", http.StatusSeeOther)
 		m.App.Session.Put(r.Context(), "error", "There were some errors, fix them and try again")
 		render.Template(w, r, "make-reservation.page.tmpl", &models.TemplateData{
-			Form: form,
-			Data: data,
+			Form:      form,
+			Data:      data,
+			StringMap: stringMap,
 		})
 		return
 	}
 
 	// Now save this reservation to the DB
-	log.Println("ABOUT TO SAVE RESERVATION") /////
 	newReservationID, err := m.DB.InsertReservation(reservation)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot insert reservation into database")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		// NOTES: this is how we can make use of our error helper to throw errors
 		return
 	}
@@ -524,7 +539,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	err = m.DB.InsertRoomRestriction(restriction)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot insert room restriction!")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -571,7 +586,6 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 
 	m.App.MailChan <- msg
 	//-------------------------------------------
-	log.Println("RESERVATION DONE, BOUT TO REDIRECT BACK TO reservation-summary") /////
 
 	m.App.Session.Put(r.Context(), "reservation", reservation)
 	//http response 'StatusSeeOther' is equal to http response code 303
@@ -590,10 +604,9 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 	// NOTES: document how you would store & retrieve a struct from the session
 	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
 	if !ok {
-		m.App.ErrorLog.Println("cannot get item from session")
 		m.App.Session.Put(r.Context(), "error", "Cannot get reservation from session")
 		//the http response code 'StatusTemporaryRedirect' is essentially a 301 code
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -637,12 +650,12 @@ func (m *Repository) ChooseRoom(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "missing url parameter")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	// let's pull the reservation credentials we put in the session earlier
-	//  in this in case it was a model we put in
+	//  in this case, it was a model we put in
 	//NOTES: This is how to retrieve data from a session. The values are usually strings by default.
 	//	if it was not a string you put in the session, you must cast it to a string if you want to
 	//  get a string back out like so: res, ok := m.App.Session.Get(r.Context(), "foo").(string).

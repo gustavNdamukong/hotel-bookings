@@ -17,9 +17,8 @@ func (m *postgresDBRepo) AllUsers() bool {
 // InsertReservation inserts a reservation to the DB
 // NOTES: to return multiple values, comma-separate them in parentheses eg (int, error) below.
 func (m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) {
-	log.Println("IN InsertReservation() ABOUT TO SAVE RESERVATION") /////
 	/*
-	 NOTES: Once the DB connectionn is open, we want to be able to close it when its done doing its job, or if it crashes,  or times out.
+	 NOTES: Once the DB connectionn is open, we want to be able to close it when its done doing its job, or if it crashes, or times out.
 	 To do so, Go has a concept of 'context' which you set with a timeout for it to be cancelled. Lets go for a 3 seconds timeout.
 	 Further below where we make the DB execution, instead of using 'DB.Exec()' like so: '_, err := m.DB.Exec(stmt, ...)' which knows
 	 nothing about context, use 'DB.ExecContext(ctx, stmt, ...)' or even 'DB.QueryRowContext(ctx, stmt, ...)'.

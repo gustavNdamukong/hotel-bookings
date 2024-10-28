@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/gob"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -405,6 +406,109 @@ func run() (*driver.DB, error) {
 	gob.Register(models.Restriction{})
 	gob.Register(map[string]int{})
 
+	// read flags
+	inProduction := flag.Bool("production", true, "Application is in production")
+	useCache := flag.Bool("cache", true, "Use template cache")
+	dbHost := flag.String("dbhost", "localhost", "Database host")
+	dbName := flag.String("dbname", "", "Database name")
+	dbUser := flag.String("dbuser", "", "Database user")
+	dbPass := flag.String("dbpass", "", "Database password")
+	dbPort := flag.String("dbport", "5432", "Database port")
+	dbSSL := flag.String("dbssl", "disable", "Database ssl settings (disable, prefer, require)")
+
+	flag.Parse()
+
+	if *dbName == "" || *dbUser == "" {
+		fmt.Println("Missing required flags")
+		os.Exit(1)
+	}
+	/*
+		NOTES: The above 'read flags' section is how you create commands to be used in the CLI.
+		You use the built-in flag object
+		when it comes to postgres the values for using SSL are
+			disable (default)
+			prefer (use an SSL certificate if it exists)
+			require (don't start unless you have an SSL certificate on the server)
+		-You have to declare data type of the value you will be assigning to this flag variable by
+		 calling the relevant type casting function on the flag object like eg flag.Bool() for
+		 booleans, or flag.String() for strings etc
+
+		These variables will now be created as pointers, since that's how they are used in the CLI.
+
+		To use them, if there is a variable in your code eg your main.go file where you have a variable
+		whose value you want to set dynamically, for example a variable named 'inProduction', just assign
+		its value to the inProduction read flag variable above like so:
+
+			app.InProduction = *inProduction
+			app.UseCache	 = *useCache
+
+		That way, when you are ready to launch your app in production, after moving your code to the
+		production server, you will simply run the command created by the flag to set the value of
+		inProduction to true (and set the values of any other variables you have defined this same way).
+		In simple words, the ideal use case for these flag variables is for any variables that will have
+		a different value based on the environment you are in. This way, you then have commands that
+		you can run in the separate environments to set the value of those variables for that specific
+		environment. Therefore, typical candidates for these are:
+			-variables that determine if we are in development or producttion
+			-variables that determine whether to use cache or not
+			-database connection credentials
+
+		To use these read flag variables or command line flags as they are often referred to, to create
+		a connection to your DB, do it like so:
+
+			connectionString :=
+				fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s",
+					*dbHost, *dbPort, *dbName, *dbUser, *dbPass, *dbSSL)
+			db, err := driver.ConnectSQL(connectionString)
+
+		-Notice how you have to call Parse() on the flag object after defining all the flag variables
+		 for them to take effect before you can use them.
+
+			flag.Parse()
+
+		-The if statemant after the flag.Parse() is how you validate, and throw a CLI message to inform
+		 the user if they failed to pass a required option in the command they ran.
+
+		 	if *dbName == "" || *dbUser == "" {
+				fmt.Println("Missing required flags")
+				os.Exit(1)
+			}
+
+		-Having set all that up, you can now define the command based on thos variables in your
+		 run.sh file that lives in the root of your application like so:
+
+		 	./bookings -dbname=hotel-bookings -dbuser=user -cache=false production=false
+
+		  Where:
+		  	the value of dbname (in our case above 'hotel-bookings') should be the actual name of
+				your application's database.
+		  	the value of dbuser (in our case above 'user') should be the actual user
+		  of the DB host your application is going to try to connect to.
+
+		  If you just try to run the application (in the CLI like so: ./run.sh) without this line
+		  in your run.sh file:
+
+		 	./bookings -dbname=hotel-bookings -dbuser=user -cache=false production=false
+
+		  which means you are trying to run the application without any of the required flags
+		  (in our case defined above dbName or dbUser), you will get the CLI error message you
+		  defined above in the print command:
+
+		  	"Missing required flags"
+
+		  If you put back this like in your run.sh file,
+
+		 	./bookings -dbname=hotel-bookings -dbuser=user -cache=false production=false
+
+		  then run the application again in the CLI like so:
+
+		  	./run.sh
+
+		  it should run just fine. Test that everything works as expected, ie if the read flag
+		  variables have the expected values. Try refreshing your app in the browser to see if
+		  it works fine. Try login in too.
+	*/
+
 	// NOTES: How to create a channel
 	//------------------------------------
 	mailChan := make(chan models.MailData)
@@ -418,7 +522,8 @@ func run() (*driver.DB, error) {
 	//------------------------------------
 
 	// change this to true when in production
-	app.InProduction = false
+	app.InProduction = *inProduction
+	app.UseCache = *useCache
 
 	// set up logging. Create a new logger that writes to the terminal (os.Stdout), prefix the msg
 	// with "INFO" & a tab, followed by the date & time
@@ -449,7 +554,10 @@ func run() (*driver.DB, error) {
 
 	// connect to DB
 	log.Println("Connecting to DB")
-	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=hotel-bookings user=user password=")
+	connectionString := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", *dbHost, *dbPort, *dbName, *dbUser, *dbPass, *dbSSL)
+	db, err := driver.ConnectSQL(connectionString)
+	// connectionString := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s" port=5432 hotel-bookings user=user ")
+	//db, err := driver.ConnectSQL("host=localhost port=5432 dbname=hotel-bookings user=user password=")
 	if err != nil {
 		log.Fatal("Cannot cronnecting to database! Dying...")
 	}
@@ -463,9 +571,6 @@ func run() (*driver.DB, error) {
 
 	app.DefaultAppTitle = "Hotel Reservation App"
 	app.TemplateCache = templateCache
-
-	//do a random global config setting change to test
-	app.UseCache = false
 
 	//set things up with our handlers
 	repo := handlers.NewRepo(&app, db)
