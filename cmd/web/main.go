@@ -474,7 +474,7 @@ func run() (*driver.DB, error) {
 				os.Exit(1)
 			}
 
-		-Having set all that up, you can now define the command based on thos variables in your
+		-Having set all that up, you can now define the command based on those variables in your
 		 run.sh file that lives in the root of your application like so:
 
 		 	./bookings -dbname=hotel-bookings -dbuser=user -cache=false production=false
