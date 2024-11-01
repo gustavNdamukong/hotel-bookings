@@ -53,7 +53,7 @@ func routes(app *config.AppConfig) http.Handler {
 		// only allow access to authenticaterd users.
 
 		// NOTES: Commenting the following line out (mux.Use(Auth)) turns off authentrication for this route group
-		/////mux.Use(Auth)
+		mux.Use(Auth)
 		mux.Get("/dashboard", handlers.Repo.AdminDashboard)
 
 		mux.Get("/reservations-new", handlers.Repo.AdminNewReservations)
